@@ -77,7 +77,6 @@ func (awsClient *awsClient) PutLogEvents(logGroupName string, logStreamName stri
 	}
 
 	// 執行 PutLogEvents 請求
-	log.Debug(params)
 	_, err := awsClient.cloudwatchLog.PutLogEvents(params)
 	if err != nil {
 		log.Error("無法傳送日誌至 CloudWatch：", err)

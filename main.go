@@ -30,9 +30,15 @@ func main() {
 	for _, item := range *GitLabs {
 		GitLab := item
 
+		now := time.Now()
+		dateString = now.Format("20060102")
+		awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+dateString)
+		awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+dateString)
+
 		_, err := s.Every(1).Day().Do(func() {
-			now := time.Now()
-			dateString = now.Format("20060102")
+			currentTime := time.Now()
+			oneDayLater := currentTime.Add(24 * time.Hour)
+			dateString = oneDayLater.Format("20060102")
 			awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+dateString)
 			awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+dateString)
 		})
@@ -71,6 +77,7 @@ func main() {
 			}
 
 			if len(logEvents) != 0 {
+				log.Debug(logEvents)
 				awsClient.PutLogEvents(GitLab.Domain, "project"+"-"+dateString, logEvents)
 			}
 		})
@@ -117,6 +124,7 @@ func main() {
 			}
 
 			if len(logEvents2) != 0 {
+				log.Debug(logEvents2)
 				awsClient.PutLogEvents(GitLab.Domain, "commit"+"-"+dateString, logEvents2)
 			}
 		})

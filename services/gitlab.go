@@ -89,11 +89,14 @@ func (gitlab *gitlab) GetCommits(target config.GitLab) []CommitWithProject {
 	gitLabToken := target.Token
 	var commitsWithProject []CommitWithProject
 	var commits []Commit
+
 	currentTime := time.Now()
 	oneHourAgo := currentTime.Add(-time.Hour)
-	iso8601Time := oneHourAgo.Format(time.RFC3339)
+	timeLayout := "2006-01-02T3:04:05Z"
+	formattedTime := oneHourAgo.Format(timeLayout)
+
 	for _, project := range projects {
-		GitLabURL := target.Scheme + target.Domain + "/api/v4/projects/" + strconv.Itoa(project.ID) + "/repository/commits?since=" + iso8601Time
+		GitLabURL := target.Scheme + target.Domain + "/api/v4/projects/" + strconv.Itoa(project.ID) + "/repository/commits?since=" + formattedTime
 		log.Debug(GitLabURL)
 		req, err := http.NewRequest("GET", GitLabURL, nil)
 		if err != nil {
