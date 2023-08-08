@@ -1,0 +1,16 @@
+application:
+  name: "gitlab-record-collection"
+  version: "1.0.0"
+
+gitlabs:
+  - scheme: 'https://'
+    domain: 'gitlab.example.com'
+    token: 'gitlab-token'
+
+log:
+  level: debug
+  filePath: "./logs/log.log"
+  omitTimeKey: false
+
+leveldb:
+  dbPath: "./.leveldb"

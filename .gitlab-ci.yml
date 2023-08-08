@@ -1,0 +1,18 @@
+variables:
+  DockerfilePath: "build/Dockerfile"
+  HARBOR_SPECIFY_PROJECT: "devops"
+
+workflow:
+  rules:
+    - if: $DockerfilePath
+
+include:
+  - project: 'gitlab-integrate/continuous-integration'
+    ref: main
+    file: '/init.yml'
+  - project: 'gitlab-integrate/continuous-integration'
+    ref: main
+    file: '/build-docker.yml'
+  - project: 'gitlab-integrate/continuous-integration'
+    ref: main
+    file: '/notification.yml'
