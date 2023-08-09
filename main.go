@@ -24,23 +24,23 @@ func main() {
 
 	// 要傳送的日誌訊息
 	s := gocron.NewScheduler(time.UTC)
-	dateString := ""
 
 	GitLabs := config.GetGitLabs()
 	for _, item := range *GitLabs {
 		GitLab := item
 
 		now := time.Now()
-		dateString = now.Format("20060102")
-		awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+dateString)
-		awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+dateString)
+		todayFormat := ""
+		awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+now.Format("20060102"))
+		awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+now.Format("20060102"))
 
 		_, err := s.Every(1).Day().Do(func() {
 			currentTime := time.Now()
-			oneDayLater := currentTime.Add(24 * time.Hour)
-			dateString = oneDayLater.Format("20060102")
-			awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+dateString)
-			awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+dateString)
+			tomorrowTIme := currentTime.Add(24 * time.Hour)
+			todayFormat = currentTime.Format("20060102")
+			tomorrowFormat := tomorrowTIme.Format("20060102")
+			awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+tomorrowFormat)
+			awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+tomorrowFormat)
 		})
 		if err != nil {
 			log.Error("Create Log Stream", err)
@@ -78,7 +78,7 @@ func main() {
 
 			if len(logEvents) != 0 {
 				log.Debug(logEvents)
-				awsClient.PutLogEvents(GitLab.Domain, "project"+"-"+dateString, logEvents)
+				awsClient.PutLogEvents(GitLab.Domain, "project"+"-"+todayFormat, logEvents)
 			}
 		})
 		if err != nil {
@@ -125,7 +125,7 @@ func main() {
 
 			if len(logEvents2) != 0 {
 				log.Debug(logEvents2)
-				awsClient.PutLogEvents(GitLab.Domain, "commit"+"-"+dateString, logEvents2)
+				awsClient.PutLogEvents(GitLab.Domain, "commit"+"-"+todayFormat, logEvents2)
 			}
 		})
 		if err != nil {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -44,42 +45,50 @@ var Gitlab *gitlab
 
 // GetProject is initialization when the service started
 func (gitlab *gitlab) GetProjects(target config.GitLab) []Project {
+	currentTime := time.Now()
+	yesterdayTIme := currentTime.Add(-24 * time.Hour)
+	formattedTime := yesterdayTIme.Format("2006-01-02T3:04:05Z")
 
-	GitLabURL := target.Scheme + target.Domain + "/api/v4/projects?archived=false&order_by=last_activity_at&sort=desc"
+	GitLabURL := target.Scheme + target.Domain + "/api/v4/projects?simple=true&archived=false&last_activity_after=" + formattedTime
+	log.Debug(GitLabURL)
 	GitLabToken := target.Token
+	page := 1
+	perPage := 50
+	var allProjects []Project
 
-	// 發送 GET 請求
-	req, err := http.NewRequest("GET", GitLabURL, nil)
-	if err != nil {
-		log.Error("發送 GET 請求失敗：", err)
-		return nil
+	for {
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s&per_page=%d&page=%d", GitLabURL, perPage, page), nil)
+		if err != nil {
+			log.Error("無法建立請求：", err)
+			return nil
+		}
+
+		req.Header.Set("PRIVATE-TOKEN", GitLabToken)
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Error("無法取得專案資料：", err)
+			return nil
+		}
+
+		defer resp.Body.Close()
+		var projects []Project
+		decoder := json.NewDecoder(resp.Body)
+		err = decoder.Decode(&projects)
+		if err != nil {
+			log.Error("無法解析 JSON：", err)
+			return nil
+		}
+
+		allProjects = append(allProjects, projects...)
+
+		if len(projects) < perPage {
+			break
+		}
+
+		page++
 	}
-	req.Header.Add("PRIVATE-TOKEN", GitLabToken)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Error("接收回應失敗：", err)
-		return nil
-	}
-	defer resp.Body.Close()
-
-	// 讀取回應內容
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("讀取回應內容失敗：", err)
-		return nil
-	}
-
-	// 解析 JSON 資料
-	var projects []Project
-	err = json.Unmarshal(body, &projects)
-	if err != nil {
-		log.Error("解析 JSON 失敗：", err)
-		return nil
-	}
-
-	return projects
+	return allProjects
 }
 
 // GetProjectList is initialization when the service started
@@ -92,11 +101,10 @@ func (gitlab *gitlab) GetCommits(target config.GitLab) []CommitWithProject {
 
 	currentTime := time.Now()
 	oneHourAgo := currentTime.Add(-time.Hour)
-	timeLayout := "2006-01-02T3:04:05Z"
-	formattedTime := oneHourAgo.Format(timeLayout)
+	formattedTime := oneHourAgo.Format("2006-01-02T3:04:05Z")
 
 	for _, project := range projects {
-		GitLabURL := target.Scheme + target.Domain + "/api/v4/projects/" + strconv.Itoa(project.ID) + "/repository/commits?since=" + formattedTime
+		GitLabURL := target.Scheme + target.Domain + "/api/v4/projects/" + strconv.Itoa(project.ID) + "/repository/commits?per_page=100&since=" + formattedTime
 		log.Debug(GitLabURL)
 		req, err := http.NewRequest("GET", GitLabURL, nil)
 		if err != nil {
@@ -121,7 +129,7 @@ func (gitlab *gitlab) GetCommits(target config.GitLab) []CommitWithProject {
 
 		err = json.Unmarshal(body, &commits)
 		if err != nil {
-			log.Error("解析 JSON 失敗：", err)
+			log.Error("解析 JSON 失敗：", err, string(body))
 			return nil
 		}
 
