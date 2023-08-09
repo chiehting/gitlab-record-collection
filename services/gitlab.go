@@ -30,7 +30,6 @@ type Commit struct {
 	AuthorName    string `json:"author_name"`
 	AuthorEmail   string `json:"author_email"`
 	CommittedDate string `json:"committed_date"`
-	Message       string `json:"message"`
 }
 
 // CommitWithProject 是新的結構，包含 Commit 資料以及專案欄位

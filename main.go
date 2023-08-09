@@ -100,7 +100,6 @@ func main() {
 					"author_name":    commitWithProject.Commit.AuthorName,
 					"author_email":   commitWithProject.Commit.AuthorEmail,
 					"committed_date": commitWithProject.Commit.CommittedDate,
-					"message":        commitWithProject.Commit.Message,
 				}
 
 				logJSON, err := json.Marshal(logData)
