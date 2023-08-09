@@ -46,7 +46,7 @@ var Gitlab *gitlab
 func (gitlab *gitlab) GetProjects(target config.GitLab) []Project {
 	currentTime := time.Now()
 	yesterdayTIme := currentTime.Add(-24 * time.Hour)
-	formattedTime := yesterdayTIme.Format("2006-01-02T3:04:05Z")
+	formattedTime := yesterdayTIme.Format("2006-01-02T03:04:05Z")
 
 	GitLabURL := target.Scheme + target.Domain + "/api/v4/projects?simple=true&archived=false&last_activity_after=" + formattedTime
 	log.Debug(GitLabURL)
@@ -100,7 +100,7 @@ func (gitlab *gitlab) GetCommits(target config.GitLab) []CommitWithProject {
 
 	currentTime := time.Now()
 	oneHourAgo := currentTime.Add(-time.Hour)
-	formattedTime := oneHourAgo.Format("2006-01-02T3:04:05Z")
+	formattedTime := oneHourAgo.Format("2006-01-02T03:04:05Z")
 
 	for _, project := range projects {
 		GitLabURL := target.Scheme + target.Domain + "/api/v4/projects/" + strconv.Itoa(project.ID) + "/repository/commits?per_page=100&since=" + formattedTime

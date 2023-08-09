@@ -30,7 +30,7 @@ func main() {
 		GitLab := item
 
 		now := time.Now()
-		todayFormat := ""
+		todayFormat := now.Format("20060102")
 		awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+now.Format("20060102"))
 		awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+now.Format("20060102"))
 
