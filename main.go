@@ -24,34 +24,31 @@ func main() {
 
 	// 要傳送的日誌訊息
 	s := gocron.NewScheduler(time.UTC)
+	dateFormat := "200601"
 
 	GitLabs := config.GetGitLabs()
 	for _, item := range *GitLabs {
 		GitLab := item
 
 		now := time.Now()
-		todayFormat := now.Format("20060102")
-		awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+now.Format("20060102"))
-		awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+now.Format("20060102"))
+		awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+now.Format(dateFormat))
+		awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+now.Format(dateFormat))
 
+		s.Every(1).MonthLastDay().Do(func() {
+			currentTime := time.Now()
+			twoDayAgo := currentTime.Add(48 * time.Hour)
+			awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+twoDayAgo.Format(dateFormat))
+			awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+twoDayAgo.Format(dateFormat))
+		})
+
+		// 傳送專案內容
 		_, err := s.Every(1).Day().Do(func() {
 			currentTime := time.Now()
-			tomorrowTIme := currentTime.Add(24 * time.Hour)
-			todayFormat = currentTime.Format("20060102")
-			tomorrowFormat := tomorrowTIme.Format("20060102")
-			awsClient.CreateLogStream(GitLab.Domain, "project"+"-"+tomorrowFormat)
-			awsClient.CreateLogStream(GitLab.Domain, "commit"+"-"+tomorrowFormat)
-		})
-		if err != nil {
-			log.Error("Create Log Stream", err)
-		}
+			currentFormat := currentTime.Format(dateFormat)
 
-		// 傳送專案
-		_, err = s.Every(1).Day().Do(func() {
 			projects := gitlab.GetProjects(GitLab)
-			logEvents := []*cloudwatchlogs.InputLogEvent{}
+			projectLogEvents := []*cloudwatchlogs.InputLogEvent{}
 
-			// 使用迴圈處理 JSON 資料
 			for _, project := range projects {
 				logData := map[string]interface{}{
 					"domain":              GitLab.Domain,
@@ -73,21 +70,31 @@ func main() {
 					Timestamp: aws.Int64(aws.TimeUnixMilli(time.Now())),
 				}
 
-				logEvents = append(logEvents, logEvent)
+				projectLogEvents = append(projectLogEvents, logEvent)
+
+				if len(projectLogEvents) == 100 {
+					log.Debug(projectLogEvents)
+					awsClient.PutLogEvents(GitLab.Domain, "project"+"-"+currentFormat, projectLogEvents)
+					projectLogEvents = []*cloudwatchlogs.InputLogEvent{}
+				}
 			}
 
-			if len(logEvents) != 0 {
-				log.Debug(logEvents)
-				awsClient.PutLogEvents(GitLab.Domain, "project"+"-"+todayFormat, logEvents)
+			if len(projectLogEvents) != 0 {
+				log.Debug(projectLogEvents)
+				awsClient.PutLogEvents(GitLab.Domain, "project"+"-"+currentFormat, projectLogEvents)
 			}
 		})
 		if err != nil {
 			log.Error("Get projects", err)
 		}
 
+		// 傳送提交內容
 		_, err = s.Every(1).Hour().Do(func() {
+			currentTime := time.Now()
+			currentFormat := currentTime.Format(dateFormat)
+
 			commitsWithProject := gitlab.GetCommits(GitLab)
-			logEvents2 := []*cloudwatchlogs.InputLogEvent{}
+			commitLogEvents := []*cloudwatchlogs.InputLogEvent{}
 
 			// 使用迴圈處理 JSON 資料
 			for _, commitWithProject := range commitsWithProject {
@@ -119,12 +126,18 @@ func main() {
 					Timestamp: aws.Int64(aws.TimeUnixMilli(parsedTime)),
 				}
 
-				logEvents2 = append(logEvents2, logEvent)
+				commitLogEvents = append(commitLogEvents, logEvent)
+				if len(commitLogEvents) == 100 {
+					log.Debug(commitLogEvents)
+					awsClient.PutLogEvents(GitLab.Domain, "commit"+"-"+currentFormat, commitLogEvents)
+					commitLogEvents = []*cloudwatchlogs.InputLogEvent{}
+				}
+
 			}
 
-			if len(logEvents2) != 0 {
-				log.Debug(logEvents2)
-				awsClient.PutLogEvents(GitLab.Domain, "commit"+"-"+todayFormat, logEvents2)
+			if len(commitLogEvents) != 0 {
+				log.Debug(commitLogEvents)
+				awsClient.PutLogEvents(GitLab.Domain, "commit"+"-"+currentFormat, commitLogEvents)
 			}
 		})
 		if err != nil {

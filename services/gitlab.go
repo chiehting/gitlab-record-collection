@@ -105,6 +105,7 @@ func (gitlab *gitlab) GetCommits(target config.GitLab) []CommitWithProject {
 	for _, project := range projects {
 		GitLabURL := target.Scheme + target.Domain + "/api/v4/projects/" + strconv.Itoa(project.ID) + "/repository/commits?per_page=100&since=" + formattedTime
 		log.Debug(GitLabURL)
+
 		req, err := http.NewRequest("GET", GitLabURL, nil)
 		if err != nil {
 			log.Error("發送 GET 請求失敗：", err)
@@ -114,6 +115,7 @@ func (gitlab *gitlab) GetCommits(target config.GitLab) []CommitWithProject {
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
+
 		if err != nil {
 			log.Error("接收回應失敗：", err)
 			return nil
