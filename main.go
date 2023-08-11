@@ -46,7 +46,7 @@ func main() {
 			currentTime := time.Now()
 			currentFormat := currentTime.Format(dateFormat)
 
-			projects := gitlab.GetProjects(GitLab)
+			projects := gitlab.GetProjects(GitLab, true)
 			projectLogEvents := []*cloudwatchlogs.InputLogEvent{}
 
 			for _, project := range projects {

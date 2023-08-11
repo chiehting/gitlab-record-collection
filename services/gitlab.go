@@ -43,12 +43,15 @@ type CommitWithProject struct {
 var Gitlab *gitlab
 
 // GetProject is initialization when the service started
-func (gitlab *gitlab) GetProjects(target config.GitLab) []Project {
+func (gitlab *gitlab) GetProjects(target config.GitLab, all bool) []Project {
 	currentTime := time.Now()
 	yesterdayTIme := currentTime.Add(-24 * time.Hour)
 	formattedTime := yesterdayTIme.Format("2006-01-02T03:04:05Z")
 
-	GitLabURL := target.Scheme + target.Domain + "/api/v4/projects?simple=true&archived=false&last_activity_after=" + formattedTime
+	GitLabURL := target.Scheme + target.Domain + "/api/v4/projects?simple=true&archived=false"
+	if !all {
+		GitLabURL += "&last_activity_after=" + formattedTime
+	}
 	log.Debug(GitLabURL)
 	GitLabToken := target.Token
 	page := 1
@@ -93,7 +96,7 @@ func (gitlab *gitlab) GetProjects(target config.GitLab) []Project {
 // GetProjectList is initialization when the service started
 func (gitlab *gitlab) GetCommits(target config.GitLab) []CommitWithProject {
 
-	projects := gitlab.GetProjects(target)
+	projects := gitlab.GetProjects(target, false)
 	gitLabToken := target.Token
 	var commitsWithProject []CommitWithProject
 	var commits []Commit
