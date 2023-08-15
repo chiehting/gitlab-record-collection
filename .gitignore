@@ -26,5 +26,6 @@ logs
 
 # Service
 .leveldb
+docker-compose.yml
 config.yml
 main
